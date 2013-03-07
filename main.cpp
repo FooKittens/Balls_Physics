@@ -38,10 +38,14 @@ LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 // Will be called to initialize the application
 void Init();
 
+// Updates physics
 void UpdateSimulation(double delta);
 
 // Draws a representation of the physics state.
 void Draw();
+
+// Called when the program is closing to cleanup all our resources.
+void Cleanup();
 
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE pinst, TCHAR *cmd, int cmdshow)
 {
@@ -105,9 +109,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE pinst, TCHAR *cmd, int cmdshow)
     Draw();
   }
 
-  delete backBuffer;
-
-  GdiplusShutdown(gdiStartToken);
+  Cleanup();
 
   return 0;
 }
@@ -116,16 +118,6 @@ void Init()
 {
   GdiplusStartupInput startInput;
   GdiplusStartup(&gdiStartToken, &startInput, 0);
-
-  WINDOWINFO winfo;
-  GetWindowInfo(hwnd, &winfo);
-
-  RECT client;
-  GetClientRect(hwnd, &client);
-
-  int xmargin = winfo.rcWindow.right - winfo.rcClient.right;
-  int ymargin = winfo.rcWindow.bottom - winfo.rcClient.bottom;
-  
 
   HDC hdc = GetDC(hwnd);
   Graphics g(hdc);
@@ -139,9 +131,19 @@ void Init()
 
   Ball *b = new Ball();
   b->Mass = 10.0f;
-  b->Position = Vector2D(4.2f, 2.82f);
+  b->Position = Vector2D(4.2f, 6.2f);
   b->Velocity = Vector2D(0.0f, 0.0f);
+  b->Radius = 0.55f;
   balls.push_back(b);
+}
+
+void Cleanup()
+{
+  delete backBuffer;
+  GdiplusShutdown(gdiStartToken);
+
+  for(Ball *b : balls) delete b;
+  balls.clear();
 }
 
 void UpdateSimulation(double delta)
@@ -170,31 +172,29 @@ void Draw()
   Point po2 = TransformToScreen(p2);
   g.DrawLine(&p, po1, po2);
   
-  
-  float ballRadius = 0.05f;
-
+ 
   for(Ball *b : balls)
   {
     Point closest = TransformToScreen(ClosestPointOnLine(b->Position, p1, p2));
 
     float dist = PointLineDistance(b->Position, p1, p2);
-    if(dist < ballRadius)
+    if(dist < b->Radius)
     {      
       // Reflects the balls velocity on the line
       b->Velocity = Vector2D::Reflect(b->Velocity, (p2 - p1));
 
       // Make sure the ball is separated from the line.
-      b->Position += (p2 - p1).Perpendicular().Unit() * -ballRadius;
+      b->Position += (p2 - p1).Perpendicular().Unit() * -(b->Radius);
     }
 
     g.FillEllipse(&br, closest.X - 2, closest.Y - 2, 4, 4);
 
     Gdiplus::Point ballPos = TransformToScreen(b->Position);
     g.FillEllipse(&br,
-      ballPos.X - MetersToPixels(ballRadius),
-      ballPos.Y - MetersToPixels(ballRadius),
-      MetersToPixels(2.0f * ballRadius),
-      MetersToPixels(2.0f * ballRadius));    
+      ballPos.X - MetersToPixels(b->Radius),
+      ballPos.Y - MetersToPixels(b->Radius),
+      MetersToPixels(2.0f * b->Radius),
+      MetersToPixels(2.0f * b->Radius));    
   }
 
 

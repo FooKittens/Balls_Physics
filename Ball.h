@@ -23,6 +23,7 @@ public:
   Vector2D Velocity;
   Vector2D Acceleration;
   float Mass;
+  float Radius;
 
   void Update(double dt);
   void Draw(Gdiplus::Graphics *g);
