@@ -11,3 +11,13 @@
 *.lai
 *.la
 *.a
+/*.sdf
+/Debug/*.log
+/Debug/*.exe
+/Debug/*.pdb
+/Debug/*.lastbuildstate
+/Debug/*.ilk
+/Debug/*.tlog
+/Debug/*.obj
+/Debug/*.idb
+/*.opensdf
