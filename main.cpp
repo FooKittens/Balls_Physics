@@ -123,17 +123,19 @@ void Init()
   Graphics g(hdc);
   backBuffer = new Bitmap(ScreenWidth, ScreenHeight, &g);
 
+  // Transform used to turn our coordinates in meters into pixels.
+  // Also inverts the y axis to produce a more typical coordinate system.
   ScreenTransform =
     Matrix3x3::ScaleUniform(1.0f / MetersPerPixel) *
     Matrix3x3::Translation(0, -(ScreenHeight)) *
     Matrix3x3::Scale(1, -1); 
 
-
+  // Test ball
   Ball *b = new Ball();
-  b->Mass = 10.0f;
-  b->Position = Vector2D(4.2f, 6.2f);
+  b->Mass = 1.5f;
+  b->Position = Vector2D(4.2f, 4.2f);
   b->Velocity = Vector2D(0.0f, 0.0f);
-  b->Radius = 0.55f;
+  b->Radius = 0.25f;
   balls.push_back(b);
 }
 
@@ -148,6 +150,7 @@ void Cleanup()
 
 void UpdateSimulation(double delta)
 {
+  // Make sure update is called for every ball.
   for(Ball *b : balls)
   {
     Update(b, delta);
@@ -164,8 +167,8 @@ void Draw()
 
   SolidBrush br(Color(233, 255, 255));
 
-  Vector2D p1(0.0f, 2.8f);
-  Vector2D p2(8.0f, 2.4f);
+  Vector2D p1(0.0f, 3.8f);
+  Vector2D p2(8.0f, 2.8f);
 
   Pen p(Color(255, 0, 0));
   Point po1 = TransformToScreen(p1);
@@ -175,16 +178,16 @@ void Draw()
  
   for(Ball *b : balls)
   {
-    Point closest = TransformToScreen(ClosestPointOnLine(b->Position, p1, p2));
+    Point closest = TransformToScreen(ClosestPointOnLine(b->Position, p2, p1));
 
     float dist = PointLineDistance(b->Position, p1, p2);
     if(dist < b->Radius)
     {      
       // Reflects the balls velocity on the line
-      b->Velocity = Vector2D::Reflect(b->Velocity, (p2 - p1));
+      b->Velocity = Vector2D::Reflect(b->Velocity, (p2 - p1)) * 0.75f;
 
       // Make sure the ball is separated from the line.
-      b->Position += (p2 - p1).Perpendicular().Unit() * -(b->Radius);
+      b->Position += (p2 - p1).Perpendicular().Unit() * -(b->Radius) * 0.5f;
     }
 
     g.FillEllipse(&br, closest.X - 2, closest.Y - 2, 4, 4);
