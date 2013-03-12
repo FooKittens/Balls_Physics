@@ -21,3 +21,9 @@
 /Debug/*.obj
 /Debug/*.idb
 /*.opensdf
+/Release/*.exe
+/Release/*.lastbuildstate
+/Release/*.pdb
+/Release/*.tlog
+/Release/*.obj
+/Release/*.log

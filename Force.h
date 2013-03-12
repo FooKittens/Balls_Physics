@@ -11,6 +11,7 @@ struct Force
     TimeLeft = duration;
     Permanent = false;
   }
+
   Vector2D Direction;
   float Magnitude;
   float TimeLeft;

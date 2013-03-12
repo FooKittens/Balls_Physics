@@ -10,9 +10,9 @@ struct Matrix3x3
     m21 = 0; m22 = 0; m23 = 0;
     m31 = 0; m32 = 0; m33 = 0;
   }
-  Matrix3x3(float m11, float m12, float m13,
-            float m21, float m22, float m23,
-            float m31, float m32, float m33)
+  Matrix3x3(double m11, double m12, double m13,
+            double m21, double m22, double m23,
+            double m31, double m32, double m33)
   { 
     this->m11 = m11; this->m12 = m12; this->m13 = m13;
     this->m21 = m21; this->m22 = m22; this->m23 = m23;
@@ -20,15 +20,15 @@ struct Matrix3x3
   }
   
   static Matrix3x3 Identity();
-  static Matrix3x3 Rotation(float rad);
-  static Matrix3x3 Translation(float x, float y);
-  static Matrix3x3 ScaleUniform(float scale);
-  static Matrix3x3 Scale(float sx, float sy);
+  static Matrix3x3 Rotation(double rad);
+  static Matrix3x3 Translation(double x, double y);
+  static Matrix3x3 ScaleUniform(double scale);
+  static Matrix3x3 Scale(double sx, double sy);
 
   // m[row][column]
-  float m11; float m12; float m13;
-  float m21; float m22; float m23;
-  float m31; float m32; float m33;
+  double m11; double m12; double m13;
+  double m21; double m22; double m23;
+  double m31; double m32; double m33;
 
 };
 
@@ -60,28 +60,28 @@ inline Matrix3x3 Matrix3x3::Identity()
                    0, 0, 1);
 }
 
-inline Matrix3x3 Matrix3x3::Rotation(float rad)
+inline Matrix3x3 Matrix3x3::Rotation(double rad)
 {
-  return Matrix3x3(cosf(rad), sinf(rad), 0,
-                   -sinf(rad), cosf(rad), 0,
+  return Matrix3x3(cos(rad), sin(rad), 0,
+                   -sin(rad), cos(rad), 0,
                    0, 0, 0);
 }
 
-inline Matrix3x3 Matrix3x3::Translation(float x, float y)
+inline Matrix3x3 Matrix3x3::Translation(double x, double y)
 {
   return Matrix3x3(1, 0, 0,
                    0, 1, 0,
                    x, y, 1);
 }
 
-inline Matrix3x3 Matrix3x3::ScaleUniform(float scale)
+inline Matrix3x3 Matrix3x3::ScaleUniform(double scale)
 {
   return Matrix3x3(scale, 0, 0,
                    0, scale, 0,
                    0, 0, 1);
 }
 
-inline Matrix3x3 Matrix3x3::Scale(float sx, float sy)
+inline Matrix3x3 Matrix3x3::Scale(double sx, double sy)
 {
   return Matrix3x3(sx, 0, 0,
                    0, sy, 0,

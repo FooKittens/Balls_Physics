@@ -11,18 +11,18 @@
 #include "Vector2D.h"
 #include "Ball.h"
 #include "Force.h"
+#include "Line.h"
 
 
 
 // ---------- PHYSICS SETTINGS ------------ //
-const float MetersPerPixel = 1.0f / 100.0f;
-const float GravityCoefficient = 9.82f;
-const Vector2D GravityDirection(0, -1.0f);
+const double MetersPerPixel = 1.0 / 100.0;
+const double GravityCoefficient = 9.82;
+const Vector2D GravityDirection(0, -1.0);
 
 // Variables are defined elsewhere
 extern const int ScreenWidth;
 extern const int ScreenHeight;
-extern Matrix3x3 ScreenTransform;
 
 
 // Called to update the physics simulation for a given ball.
@@ -33,49 +33,41 @@ void Update(Ball *ball, double delta)
   // Applies them to the accumulator for the ball, and removes expired forces.
   UpdateForces(*ball, delta);
 
-  // Integrate the forces resulting in acceleration if any.
+  // Integrate the forces, resulting in acceleration if any.
   Integrate(*ball, delta);
+
+  ball->AngularVelocity *= 0.99;
 }
 
 
 // Used to transform a value in meters into the equivalent in pixels
-inline float MetersToPixels(float meters)
+inline int MetersToPixels(double meters)
 {
-  return meters * (1.0f / MetersPerPixel);
-}
-
-// Used to transform a value with a direction and magnitude to its equivalent in pixels.
-inline Vector2D MetersToPixels(const Vector2D &meters)
-{
-  return Vector2D(MetersToPixels(meters.X), MetersToPixels(meters.Y));
-}
-
-inline Gdiplus::Point TransformToScreen(const Vector2D& vec)
-{
-  Vector2D transformed = Vector2D::Transform(vec, ScreenTransform);
-
-  return Gdiplus::Point(static_cast<int>(transformed.X),
-    static_cast<int>(transformed.Y));
+  return static_cast<int>(meters * (1.0 / MetersPerPixel));
 }
 
 void UpdateForces(Ball &ball, double dt)
 {
   for(auto it = ball.forces.begin(); it != ball.forces.end(); ++it)
   {
+
     if(it->Permanent == false)
     {
       it->TimeLeft -= dt;
 
       // Remove expired forces
-      if(it->TimeLeft - dt <= 0.0f)
+      if(it->TimeLeft - dt <= 0.0)
       {
         it = ball.forces.erase(it);
-        if(it == ball.forces.end()) break;
+        if(it == ball.forces.end())
+          break;
+
         continue;
       }
     }
 
     ball.forceAccumulator += it->Direction * it->Magnitude * dt;
+    
   }
 
   ApplyGravity(ball);
@@ -86,14 +78,19 @@ void UpdateForces(Ball &ball, double dt)
 void Integrate(Ball &ball, double dt)
 {
   // Resulting acceleration
-  ball.Acceleration = ball.forceAccumulator * (1.0f /  ball.Mass);
+  ball.Acceleration = ball.forceAccumulator * (1.0 /  ball.Mass);
   ball.forceAccumulator = Vector2D(0,0);
   // Integrate the balls velocity over time
   ball.Velocity = ball.Acceleration * dt + ball.Velocity;
 
   // Integrate the position over time based on velocity
-  ball.Position = (ball.Acceleration * pow(dt, 2)) * (1.0f / 2.0f) +
+  ball.Position = (ball.Acceleration * pow(dt, 2.0)) * (1.0 / 2.0) +
     ball.Velocity * dt + ball.Position;
+
+  ball.AngularVelocity = ball.AngularAcceleration * dt + ball.AngularVelocity;
+
+  ball.Orientation = ball.AngularAcceleration * pow(dt, 2.0) * (1.0 / 2.0) +
+    ball.AngularVelocity * dt + ball.Orientation;
 
   // This can be condensed to the following if we want to store less values
 #if 0
@@ -112,23 +109,25 @@ void ApplyGravity(Ball &ball)
 }
 
 // Determines the closest point on the line made out of l1 and l2.
-Vector2D ClosestPointOnLine(const Vector2D &point, const Vector2D &l1, const Vector2D &l2)
+Vector2D ClosestPointOnLine(const Vector2D &point, const Line &line)
 {
-  Vector2D line = l1.X < l2.X ? l2 - l1 : l1 - l2;
-  Vector2D diff = l1 - point;
+  Vector2D lineVec = line.GetStart().X < line.GetEnd().X ?
+    line.GetEnd() -line.GetStart() : line.GetStart() - line.GetEnd();
+  
+  Vector2D diff = line.GetStart() - point;
 
-  float dot = Vector2D::Dot(line.Unit(), diff.Unit());
+  float dot = Vector2D::Dot(lineVec.Unit(), diff.Unit());
 
   float lineSegLength = dot * diff.Length();
 
-  Vector2D nearestPoint = l1 + line.Unit() * -lineSegLength;
+  Vector2D nearestPoint = line.GetStart() + lineVec.Unit() * -lineSegLength;
 
   return nearestPoint;
 }
 
-float PointLineDistance(const Vector2D &point, const Vector2D &l1, const Vector2D &l2)
+float PointLineDistance(const Vector2D &point, const Line &line)
 {
-  return (ClosestPointOnLine(point, l1, l2) - point).Length();
+  return (ClosestPointOnLine(point, line) - point).Length();
 }
 
 
