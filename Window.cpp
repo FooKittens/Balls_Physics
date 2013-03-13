@@ -236,11 +236,13 @@ void Window::UpdateSimulation(double deltaTime)
         }
        
 
-        Vector2D pointVel = (closest - ball->Position).Perpendicular().Unit() * ball->AngularVelocity +
-          ball->Velocity;
+        Vector2D pMom = ball->Velocity * ball->Mass + (closest - ball->Position).Perpendicular().Unit() * ball->AngularVelocity *  (3.141592 * pow(ball->Radius, 4));
 
-        double coeff = Vector2D::Dot(pointVel, normalForce);
-        ball->AngularVelocity += -coeff / (3.141592 * (pow(ball->Radius, 4) / 4));
+        double coe = Vector2D::Dot(pMom, lineVec.Unit() * (1.0 * (10.0 + line->GetFrictionCoeff())));
+        ball->AngularVelocity += coe;
+
+        //double coeff = Vector2D::Dot(pointVel, normalForce);
+        
 
       }
     }
