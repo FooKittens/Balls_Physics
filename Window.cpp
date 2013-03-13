@@ -109,6 +109,11 @@ bool Window::Initialize()
 
   lines.push_back(new Line(this, Vector2D(2.7f, 3.8f), Vector2D(5.2f, 2.3f)));
   
+  for(Line *line : lines)
+  {
+    line->SetRestitution(0.85f);
+  }
+
 
   fpsStrBuffer = new WCHAR[20];
   memset(fpsStrBuffer, 0, sizeof(WCHAR) * 20);
@@ -222,8 +227,8 @@ void Window::UpdateSimulation(double deltaTime)
 
         /* The response will now be to add the velocity change caused by
          * the opposite impulse. */
-        ball->Velocity += normalForce * ((-(0.85 + line->GetRestitution()) * mag) / ball->Mass);
-        
+        //ball->Velocity += normalForce * ((-(0.85 + line->GetRestitution()) * mag) / ball->Mass);
+        ball->ApplyImpulse(normalForce * -(1.0 + line->GetRestitution()) * mag);
 
         // Separate the ball from the line
         if(mag >= 0)
@@ -236,10 +241,11 @@ void Window::UpdateSimulation(double deltaTime)
         }
        
 
-        Vector2D pMom = ball->Velocity * ball->Mass + (closest - ball->Position).Perpendicular().Unit() * ball->AngularVelocity *  (3.141592 * pow(ball->Radius, 4));
-
-        double coe = Vector2D::Dot(pMom, lineVec.Unit() * (1.0 * (10.0 + line->GetFrictionCoeff())));
-        ball->AngularVelocity += coe;
+        double d = Vector2D::Dot(ball->Velocity * ball->Mass, lineVec.Unit());
+        double r = (closest - ball->Position).Length();
+        double angImpulse = d
+          + -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity * (3.141592 * pow(r, 4) * ball->Mass);
+        ball->ApplyAngularImpulse(angImpulse);
 
         //double coeff = Vector2D::Dot(pointVel, normalForce);
         

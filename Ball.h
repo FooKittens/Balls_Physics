@@ -41,6 +41,8 @@ public:
   void Update(double dt);
   void Draw(Gdiplus::Graphics *g);
   void AddForce(Force force);
+  void ApplyImpulse(const Vector2D& impulse);
+  void ApplyAngularImpulse(const double impulse);
 
 private:
   static int numBalls;
@@ -123,6 +125,16 @@ void Ball::Draw(Gdiplus::Graphics *g)
 inline void Ball::AddForce(Force force)
 {
   forces.push_back(force);
+}
+
+void Ball::ApplyImpulse(const Vector2D &impulse)
+{
+  Velocity += impulse * (1.0 /  Mass);
+}
+
+void Ball::ApplyAngularImpulse(const double impulse)
+{
+  AngularVelocity += impulse / (3.141592 * pow(Radius, 4) * Mass);
 }
 
 #endif
