@@ -94,7 +94,7 @@ bool Window::Initialize()
 
   // Test ball
   Ball *b = new Ball(this);
-  b->Initialize(1.5f, 0.25f, Vector2D(3.0f, 4.7f));
+  b->Initialize(1.5f, 0.25f, Vector2D(2.9f, 3.9f));
   balls.push_back(b);
 
   //Ball *bb = new Ball(this);
@@ -181,8 +181,6 @@ void Window::UpdateSimulation(double deltaTime)
 {
   for(Ball *ball : balls)
   {
-    // Update our ball
-    Update(ball, deltaTime);
 
     for(Line *line : lines)
     {
@@ -224,7 +222,7 @@ void Window::UpdateSimulation(double deltaTime)
 
         /* The response will now be to add the velocity change caused by
          * the opposite impulse. */
-        ball->Velocity += normalForce * ((-(1.0 + line->GetRestitution()) * mag) / ball->Mass);
+        ball->Velocity += normalForce * ((-(0.85 + line->GetRestitution()) * mag) / ball->Mass);
         
 
         // Separate the ball from the line
@@ -236,8 +234,18 @@ void Window::UpdateSimulation(double deltaTime)
         {
           ball->Position += normalForce * (ball->Radius - distance);
         }
+       
+
+        Vector2D pointVel = (closest - ball->Position).Perpendicular().Unit() * ball->AngularVelocity +
+          ball->Velocity;
+
+        double coeff = Vector2D::Dot(pointVel, normalForce);
+        ball->AngularVelocity += -coeff / (3.141592 * (pow(ball->Radius, 4) / 4));
+
       }
     }
+    // Update our ball
+    Update(ball, deltaTime);
   }
 }
 

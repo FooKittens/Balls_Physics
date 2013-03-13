@@ -36,7 +36,7 @@ void Update(Ball *ball, double delta)
   // Integrate the forces, resulting in acceleration if any.
   Integrate(*ball, delta);
 
-  ball->AngularVelocity *= 0.99;
+  //ball->AngularVelocity *= 0.99;
 }
 
 
