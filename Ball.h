@@ -134,7 +134,7 @@ void Ball::ApplyImpulse(const Vector2D &impulse)
 
 void Ball::ApplyAngularImpulse(const double impulse)
 {
-  AngularVelocity += impulse / (3.141592 * pow(Radius, 4) * Mass);
+  AngularVelocity += impulse / (3.141592 / 256 * Mass);
 }
 
 #endif

@@ -21,6 +21,7 @@ struct Vector2D
   const Vector2D Perpendicular() const;
 
   static double Dot(const Vector2D &lhs, const Vector2D &rhs);
+  static double Cross(const Vector2D &lhs, const Vector2D &rhs);
   static Vector2D Transform(const Vector2D &vec, const Matrix3x3 &matrix);
   static Vector2D Reflect(const Vector2D &vec, const Vector2D &line);
 
@@ -38,6 +39,8 @@ struct Vector2D
   void operator+=(const Vector2D &rhs);
 
 };
+
+
 
 
 // Inlines
@@ -67,6 +70,11 @@ inline const Vector2D Vector2D::Perpendicular() const
 inline double Vector2D::Dot(const Vector2D &lhs, const Vector2D &rhs)
 {
   return (lhs.X * rhs.X + lhs.Y * rhs.Y);
+}
+
+inline double Vector2D::Cross(const Vector2D &lhs, const Vector2D &rhs)
+{
+  return (lhs.X * rhs.Y) - (lhs.Y * rhs.X);
 }
 
 inline const Vector2D Vector2D::Unit() const

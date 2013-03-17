@@ -94,12 +94,12 @@ bool Window::Initialize()
 
   // Test ball
   Ball *b = new Ball(this);
-  b->Initialize(1.5f, 0.25f, Vector2D(2.9f, 3.9f));
+  b->Initialize(0.5f, 0.25f, Vector2D(5.0f, 3.9f));
   balls.push_back(b);
 
-  //Ball *bb = new Ball(this);
-  //bb->Initialize(10.5f, 0.25f, Vector2D(4.5f, 4.7f));
-  //balls.push_back(bb);
+  Ball *bb = new Ball(this);
+  bb->Initialize(10.5f, 0.25f, Vector2D(4.5f, 4.7f));
+  balls.push_back(bb);
 
   // Test Line
   lines.push_back(new Line(this, Vector2D(2.0f, 5.0f), Vector2D(6.0f, 5.0f)));
@@ -107,7 +107,7 @@ bool Window::Initialize()
   lines.push_back(new Line(this, Vector2D(2.0f, 1.2f), Vector2D(6.0f, 1.2f)));
   lines.push_back(new Line(this, Vector2D(2.0f, 5.0f), Vector2D(2.0f, 1.2f)));
 
-  lines.push_back(new Line(this, Vector2D(2.7f, 3.8f), Vector2D(5.2f, 2.3f)));
+  lines.push_back(new Line(this, Vector2D(2.7f, 2.3f), Vector2D(5.2f, 3.8f)));
   
   for(Line *line : lines)
   {
@@ -244,7 +244,7 @@ void Window::UpdateSimulation(double deltaTime)
         double d = Vector2D::Dot(ball->Velocity * ball->Mass, lineVec.Unit());
         double r = (closest - ball->Position).Length();
         double angImpulse = d
-          + -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity * (3.141592 * pow(r, 4) * ball->Mass);
+          + -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity * (3.141592 / 256 * ball->Mass);
         ball->ApplyAngularImpulse(angImpulse);
 
         //double coeff = Vector2D::Dot(pointVel, normalForce);
