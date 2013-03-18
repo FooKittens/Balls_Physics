@@ -98,7 +98,7 @@ bool Window::Initialize()
   balls.push_back(b);
 
   Ball *bb = new Ball(this);
-  bb->Initialize(10.5f, 0.25f, Vector2D(4.5f, 4.7f));
+  bb->Initialize(10.5f, 0.125f, Vector2D(4.5f, 4.7f));
   balls.push_back(bb);
 
   // Test Line
@@ -227,7 +227,6 @@ void Window::UpdateSimulation(double deltaTime)
 
         /* The response will now be to add the velocity change caused by
          * the opposite impulse. */
-        //ball->Velocity += normalForce * ((-(0.85 + line->GetRestitution()) * mag) / ball->Mass);
         ball->ApplyImpulse(normalForce * -(1.0 + line->GetRestitution()) * mag);
 
         // Separate the ball from the line
@@ -240,16 +239,19 @@ void Window::UpdateSimulation(double deltaTime)
           ball->Position += normalForce * (ball->Radius - distance);
         }
        
+        /* Next we calculate the angular impulse by using the difference in
+        velocities between the objects along the surface. */
 
+        // We calculate the force parallell to the surface
         double d = Vector2D::Dot(ball->Velocity * ball->Mass, lineVec.Unit());
+        // Calculate the actual distance between the ball's center
         double r = (closest - ball->Position).Length();
-        double angImpulse = d
-          + -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity * (3.141592 / 256 * ball->Mass);
+        // Calculate the angular impulse as the force parallell to the surface, scaled up by our scale factor for using metres
+        double angImpulse = d * 256 / (3.141592 * ball->Mass) // 256 is scale factor for using metres
+          -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity;
+
+        // Finally we apply the angular impulse!
         ball->ApplyAngularImpulse(angImpulse);
-
-        //double coeff = Vector2D::Dot(pointVel, normalForce);
-        
-
       }
     }
     // Update our ball
