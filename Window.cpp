@@ -2,6 +2,7 @@
 #include "Ball.h"
 #include "Line.h"
 #include "Physics.h"
+#include <cmath>
 
 extern const double MetersPerPixel;
 
@@ -16,6 +17,7 @@ Window::Window(HINSTANCE instance, UINT width, UINT height)
   this->bufferGraphics = nullptr;
   this->windowGraphics = nullptr;
   this->backBuffer = nullptr;
+  globalRestitution = 1.0;
 }
 
 Window::~Window()
@@ -69,7 +71,7 @@ bool Window::Initialize()
     NULL, 
     NULL,
     appInstance,
-    0
+    this
   );
 
   if(!hWindow)
@@ -94,11 +96,11 @@ bool Window::Initialize()
 
   // Test ball
   Ball *b = new Ball(this);
-  b->Initialize(0.5f, 0.25f, Vector2D(5.0f, 3.9f));
-  balls.push_back(b);
+  b->Initialize(6.5f, 0.125f, Vector2D(5.0f, 3.9f));
+  //balls.push_back(b);
 
   Ball *bb = new Ball(this);
-  bb->Initialize(10.5f, 0.25f, Vector2D(4.5f, 4.7f));
+  bb->Initialize(2.5f, 0.25f, Vector2D(4.5f, 4.7f));
   balls.push_back(bb);
 
   // Test Line
@@ -107,11 +109,11 @@ bool Window::Initialize()
   lines.push_back(new Line(this, Vector2D(2.0f, 1.2f), Vector2D(6.0f, 1.2f)));
   lines.push_back(new Line(this, Vector2D(2.0f, 5.0f), Vector2D(2.0f, 1.2f)));
 
-  lines.push_back(new Line(this, Vector2D(2.7f, 2.3f), Vector2D(5.2f, 3.8f)));
+  lines.push_back(new Line(this, Vector2D(3.1f, 2.3f), Vector2D(5.2f, 3.8f)));
   
   for(Line *line : lines)
   {
-    line->SetRestitution(0.85f);
+    line->SetRestitution(1.0f);
   }
 
 
@@ -228,8 +230,23 @@ void Window::UpdateSimulation(double deltaTime)
         /* The response will now be to add the velocity change caused by
          * the opposite impulse. */
         //ball->Velocity += normalForce * ((-(0.85 + line->GetRestitution()) * mag) / ball->Mass);
-        ball->ApplyImpulse(normalForce * -(1.0 + line->GetRestitution()) * mag);
+        //ball->ApplyImpulse(normalForce * -(1.0 + line->GetRestitution()) * mag);
 
+        Vector2D rel = (ball->Position - closest);
+
+        double inertia = 3.141592 * pow(ball->Radius, 2.0) / 4;
+
+        double angCoeff = pow(Vector2D::Dot(rel.Perpendicular(), normalForce), 2.0) / inertia;
+
+        Vector2D totVel = ball->Velocity + rel.Perpendicular() * ball->AngularVelocity;
+
+        double j = (-(1.0 + line->GetRestitution()) * 
+          Vector2D::Dot(totVel, normalForce)) /
+          ((1 / ball->Mass) + angCoeff);
+
+        ball->Velocity += normalForce * (j / ball->Mass);
+        ball->AngularVelocity += Vector2D::Dot(rel.Perpendicular(), normalForce * j) / inertia;
+            
         // Separate the ball from the line
         if(mag >= 0)
         {
@@ -241,11 +258,11 @@ void Window::UpdateSimulation(double deltaTime)
         }
        
 
-        double d = Vector2D::Dot(ball->Velocity * ball->Mass, lineVec.Unit());
-        double r = (closest - ball->Position).Length();
-        double angImpulse = d
-          + -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity * (3.141592 / 256 * ball->Mass);
-        ball->ApplyAngularImpulse(angImpulse);
+        //double d = Vector2D::Dot(ball->Velocity * ball->Mass, lineVec.Unit());
+        //
+        //double angImpulse = d
+        //  + (1.0 + line->GetRestitution()) * r * ball->AngularVelocity;
+        //ball->ApplyAngularImpulse(angImpulse);
 
         //double coeff = Vector2D::Dot(pointVel, normalForce);
         
@@ -300,18 +317,78 @@ void Window::Draw()
     &SolidBrush(Color(255, 255, 255))
   ); 
 
+  wchar_t resBuffer[20];
+  swprintf(resBuffer, L"Restitution: %1.2f\0", globalRestitution);
+
+  bufferGraphics->DrawString(
+    resBuffer,
+    lstrlenW(resBuffer),
+    fpsFont,
+    PointF(20, 38),
+    NULL,
+    &SolidBrush(Color(255, 255, 255))
+  );
+
   windowGraphics->DrawImage(backBuffer, 0, 0, 0, 0, width, height, Unit::UnitPixel);
 }
 
-
-LRESULT CALLBACK Window::StaticWinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Window::WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  static int key;
+
   switch(msg)
   {
   case WM_DESTROY:
     PostQuitMessage(0);
     return 0;
+  case WM_KEYDOWN:
+    key = LOWORD(wParam);
+    switch(key)
+    {
+    case VK_UP:
+      globalRestitution += 0.05;
+      globalRestitution = min(globalRestitution, 1.0);
+      UpdateGlobalRestitution();
+      break;
+    case VK_DOWN:
+      globalRestitution -= 0.05;
+      globalRestitution = max(globalRestitution, 0.0);
+      UpdateGlobalRestitution();
+      break;
+    }
+    return 0;
   default:
     return DefWindowProc(hwnd, msg, wParam, lParam);
   }
+
+}
+
+void Window::UpdateGlobalRestitution()
+{
+  for(Line *line : lines)
+  {
+    if(line)
+    {
+      line->SetRestitution(globalRestitution);
+    }
+  }
+}
+
+LRESULT CALLBACK Window::StaticWinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  static Window *pWinInstance = nullptr;
+
+  if(msg == WM_CREATE)
+  {
+    pWinInstance = (Window *) ((LPCREATESTRUCT) lParam)->lpCreateParams;
+    SetWindowLong(hwnd, GWL_USERDATA, (long)pWinInstance);
+  }
+
+  pWinInstance = (Window *)GetWindowLong(hwnd, GWL_USERDATA);
+
+  if(pWinInstance)
+  {
+    return pWinInstance->WinProc(hwnd, msg, wParam, lParam);
+  }
+  return DefWindowProc(hwnd, msg, wParam, lParam);
 }

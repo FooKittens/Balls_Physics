@@ -32,6 +32,8 @@ public:
   // Transforms a vector into screen space.
   Gdiplus::Point TransformToWindow(const Vector2D &vec) const;
 
+
+  LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 private:
   // Needs to be static due to memberfunction pointers being dumb.
   static LRESULT CALLBACK StaticWinProc(HWND, UINT, WPARAM, LPARAM);
@@ -44,11 +46,14 @@ private:
 
   void GetFpsString(WCHAR *buffer, int size);
 
+  void UpdateGlobalRestitution();
+
   // ---- "Game" Variables ---- //
   // Timer used for precision timing.
   GameTimer timer;
   std::vector<Ball *> balls;
   std::vector<Line *> lines;
+  double globalRestitution;
 
   // ---- Window variables ---- //
   HINSTANCE appInstance;
