@@ -17,6 +17,7 @@ Window::Window(HINSTANCE instance, UINT width, UINT height)
   this->windowGraphics = nullptr;
   this->backBuffer = nullptr;
   this->globalRestitution = 1.0f;
+  this->ballCollisionsOn = true;
 }
 
 Window::~Window()
@@ -123,11 +124,11 @@ void Window::ResetBalls()
 
   // Test ball
   Ball *b = new Ball(this);
-  b->Initialize(0.5f, 0.25f, Vector2D(5.0f, 3.9f));
+  b->Initialize(2.5f, 0.25f, Vector2D(4.8f, 3.9f));
   balls.push_back(b);
 
   Ball *bb = new Ball(this);
-  bb->Initialize(10.5f, 0.125f, Vector2D(4.5f, 4.7f));
+  bb->Initialize(2.5f, 0.25f, Vector2D(5.0f, 4.7f));
   balls.push_back(bb);
 
 }
@@ -195,7 +196,6 @@ void Window::UpdateSimulation(double deltaTime)
 {
   for(Ball *ball : balls)
   {
-
     for(Line *line : lines)
     {
       Vector2D closest = ClosestPointOnLine(ball->Position, (*line));
@@ -253,9 +253,10 @@ void Window::UpdateSimulation(double deltaTime)
 
         // We calculate the force parallell to the surface
         double d = Vector2D::Dot(ball->Velocity * ball->Mass, lineVec.Unit());
-        // Calculate the actual distance between the ball's center
+        // Calculate the actual distance between the ball's center and the closest point on the line.
         double r = (closest - ball->Position).Length();
         // Calculate the angular impulse as the force parallell to the surface, scaled up by our scale factor for using metres
+       
         double angImpulse = d * 256 / (3.141592 * ball->Mass) // 256 is scale factor for using metres
           -(1.0 + line->GetRestitution()) * r * ball->AngularVelocity;
 
@@ -263,8 +264,76 @@ void Window::UpdateSimulation(double deltaTime)
         ball->ApplyAngularImpulse(angImpulse);
       }
     }
+    if(ballCollisionsOn)
+    {
+      DoBallCollisions(ball);
+    }
     // Update our ball
     Update(ball, deltaTime);
+  }
+}
+
+void Window::DoBallCollisions(Ball *pBall)
+{
+  for(Ball *pOther : balls)
+  {
+    // Ignore doing collisions against itself..
+    if(pOther == pBall) continue;
+
+    double minDistance = pBall->Radius + pOther->Radius;
+    Vector2D diff = pBall->Position - pOther->Position;
+    
+    if(diff.Length() > minDistance)
+    {
+      // Balls are not intersecting..
+      continue;
+    }
+
+    // Point of collision is the balls position +
+    // the diff vector(unit) scaled by the balls radius
+    Vector2D colPoint = pBall->Position + diff.Unit() * pBall->Radius;
+
+    // We can now calculate the relative velocity based on the angular velocity
+    // of the two balls togther with their linear velocities.
+
+    Vector2D rBallP = (colPoint - pBall->Position).Perpendicular();
+    Vector2D rOtherP = (colPoint - pOther->Position).Perpendicular();
+
+    Vector2D pointVelBall = pBall->Velocity + rBallP * pBall->AngularVelocity;
+
+    Vector2D pointVelOther = pOther->Velocity + rOtherP * pOther->AngularVelocity;
+
+    Vector2D relativeVelocity = pointVelBall - pointVelOther;
+
+    // The collision normal is easy to find with circles, its simply the vector between the collision
+    // point and the incident circle.
+    Vector2D colNormal = (colPoint - pBall->Position).Unit();
+    
+    double angA = pow(Vector2D::Dot(rBallP, colNormal), 2.0) / (pBall->Mass * pow(pBall->Radius, 2.0));
+    double angB = pow(Vector2D::Dot(rOtherP, colNormal), 2.0) / (pOther->Mass * pow(pBall->Radius, 2.0));
+
+    double denominator = (1.0 / pBall->Mass + 1.0 / pOther->Mass) +
+      pow(Vector2D::Dot(rBallP, colNormal), 2.0) / (pBall->Mass * pow(pBall->Radius, 2.0)) +
+      pow(Vector2D::Dot(rOtherP, colNormal), 2.0) / (pOther->Mass * pow(pBall->Radius, 2.0));
+
+    double e = 0.85f;
+
+    double j = -(1.0 + e) * Vector2D::Dot(relativeVelocity, colNormal) /
+      denominator;
+
+    pBall->Velocity = pBall->Velocity + colNormal *( j / pBall->Mass);
+    pOther->Velocity = pOther->Velocity - colNormal *( j / pOther->Mass);
+
+    pBall->AngularVelocity = pBall->AngularVelocity + Vector2D::Dot(rBallP, colNormal * j) /
+      (0.5 * pBall->Mass * pow(pBall->Radius, 2.0));
+
+    pOther->AngularVelocity = pOther->AngularVelocity - Vector2D::Dot(rOtherP, colNormal * j) /
+      (0.5 * pOther->Mass * pow(pOther->Radius, 2.0));
+
+    double overlap = diff.Length() - minDistance;
+    double sumMass = pBall->Mass + pOther->Mass;
+    pBall->Position += diff.Unit() * -(overlap /  2.0);
+    pOther->Position += diff.Unit() * (overlap / 2.0);
   }
 }
 
@@ -316,21 +385,44 @@ void Window::Draw()
     fpsStrBuffer,
     lstrlenW(fpsStrBuffer),
     fpsFont,
+    PointF(width - 200, 20),
+    NULL,
+    &fontBrush
+  );
+
+  wchar_t buffer[30];
+  swprintf(buffer, L"Reset Balls\t\t[SPACE]\0");
+    bufferGraphics->DrawString(
+    buffer,
+    lstrlenW(buffer),
+    fpsFont,
     PointF(20, 20),
     NULL,
     &fontBrush
   );
 
-  wchar_t buffer[20];
-  swprintf(buffer, L"Restitution: %1.2f\0", globalRestitution);
+  wchar_t *onStr = ballCollisionsOn ? L"ON" : L"OFF";
+  swprintf(buffer, L"BallCollisions: %s\t[B]\0", onStr);
   bufferGraphics->DrawString(
     buffer,
     lstrlenW(buffer),
     fpsFont,
-    PointF(20, 35),
+    PointF(20, 45),
     NULL,
     &fontBrush
   );
+
+  swprintf(buffer, L"Restitution: %1.2f\t[UP][DOWN]\0", globalRestitution);
+  bufferGraphics->DrawString(
+    buffer,
+    lstrlenW(buffer),
+    fpsFont,
+    PointF(20, 67),
+    NULL,
+    &fontBrush
+  );
+
+
 
   windowGraphics->DrawImage(backBuffer, 0, 0, 0, 0, width, height, Unit::UnitPixel);
 }
@@ -361,6 +453,11 @@ LRESULT CALLBACK Window::WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
       ResetBalls();
       break;
     }
+    return 0;
+  case WM_CHAR:
+    keycode = LOWORD(wParam);
+    if(keycode == 'b')
+      ballCollisionsOn = !ballCollisionsOn;
     return 0;
   default:
     return DefWindowProc(hwnd, msg, wParam, lParam);

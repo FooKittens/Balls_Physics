@@ -47,7 +47,7 @@ private:
 
   void UpdateGlobalRestitution();
   void ResetBalls();
-  
+  void DoBallCollisions(Ball *pBall);
 
   // ---- "Game" Variables ---- //
   // Timer used for precision timing.
@@ -60,6 +60,7 @@ private:
   HWND hWindow;
   UINT width, height;
   double globalRestitution;
+  bool ballCollisionsOn;
   
   // ---- Graphics and GDI ---- //
   Graphics *bufferGraphics;
