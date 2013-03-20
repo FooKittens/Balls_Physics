@@ -96,12 +96,14 @@ bool Window::Initialize()
 
 
   // Test Line
-  lines.push_back(new Line(this, Vector2D(2.0f, 5.0f), Vector2D(6.0f, 5.0f)));
-  lines.push_back(new Line(this, Vector2D(6.0f, 5.0f), Vector2D(6.0f, 1.2f)));
-  lines.push_back(new Line(this, Vector2D(2.0f, 1.2f), Vector2D(6.0f, 1.2f)));
-  lines.push_back(new Line(this, Vector2D(2.0f, 5.0f), Vector2D(2.0f, 1.2f)));
+  lines.push_back(new Line(this, Vector2D(0.5f, 5.0f), Vector2D(7.5f, 5.0f)));
+  lines.push_back(new Line(this, Vector2D(7.5f, 5.0f), Vector2D(7.5f, 0.2f)));
+  lines.push_back(new Line(this, Vector2D(0.5f, 0.2f), Vector2D(7.5f, 0.2f)));
+  lines.push_back(new Line(this, Vector2D(0.5f, 5.0f), Vector2D(0.5f, 0.2f)));
 
   lines.push_back(new Line(this, Vector2D(2.7f, 2.3f), Vector2D(5.2f, 3.8f)));
+  lines.push_back(new Line(this, Vector2D(3.2f, 0.2f), Vector2D(5.1f, 0.9f)));
+  lines.push_back(new Line(this, Vector2D(5.1f, 0.9f), Vector2D(5.5f, 0.2f)));
   
   
   ResetBalls();
@@ -122,15 +124,17 @@ void Window::ResetBalls()
   balls.clear();
   balls.shrink_to_fit();
 
+  AddBall();
+
+}
+
+void Window::AddBall()
+{
   // Test ball
   Ball *b = new Ball(this);
-  b->Initialize(2.5f, 0.25f, Vector2D(4.8f, 3.9f));
+  float sz = rand() % 18 + 19;
+  b->Initialize(sz / 13.0f, sz / 100.0f, Vector2D(4.8f, 3.9f));
   balls.push_back(b);
-
-  Ball *bb = new Ball(this);
-  bb->Initialize(2.5f, 0.25f, Vector2D(5.0f, 4.7f));
-  balls.push_back(bb);
-
 }
 
 
@@ -223,7 +227,7 @@ void Window::UpdateSimulation(double deltaTime)
          * by calculating the force the ball exerts on the line. */
 
         // The lines normal as a unit vector will be the direction.
-        Vector2D normalForce = lineVec.Perpendicular().Unit();
+        Vector2D surfaceNorm = lineVec.Perpendicular().Unit();
 
         /* In order to get the magnitude of the force we will calculate
          * the impulse caused by the ball.
@@ -232,20 +236,20 @@ void Window::UpdateSimulation(double deltaTime)
          * exerts on the line along its normal. */
 
         // Here we project the balls momentum on the lines normal.
-        double mag = Vector2D::Dot(ball->Velocity * ball->Mass, normalForce);
+        double mag = Vector2D::Dot(ball->Velocity * ball->Mass, surfaceNorm);
 
         /* The response will now be to add the velocity change caused by
          * the opposite impulse. */
-        ball->ApplyImpulse(normalForce * -(1.0 + line->GetRestitution()) * mag);
+        ball->ApplyImpulse(surfaceNorm * -(1.0 + line->GetRestitution()) * mag);
 
         // Separate the ball from the line
         if(mag >= 0)
         {
-          ball->Position += normalForce * -(ball->Radius - distance);
+          ball->Position += surfaceNorm * -(ball->Radius - distance);
         }
         else
         {
-          ball->Position += normalForce * (ball->Radius - distance);
+          ball->Position += surfaceNorm * (ball->Radius - distance);
         }
        
         /* Next we calculate the angular impulse by using the difference in
@@ -401,13 +405,23 @@ void Window::Draw()
     &fontBrush
   );
 
+  swprintf(buffer, L"Add Ball\t\t[C]\0");
+    bufferGraphics->DrawString(
+    buffer,
+    lstrlenW(buffer),
+    fpsFont,
+    PointF(20, 45),
+    NULL,
+    &fontBrush
+  );
+
   wchar_t *onStr = ballCollisionsOn ? L"ON" : L"OFF";
   swprintf(buffer, L"BallCollisions: %s\t[B]\0", onStr);
   bufferGraphics->DrawString(
     buffer,
     lstrlenW(buffer),
     fpsFont,
-    PointF(20, 45),
+    PointF(20, 67),
     NULL,
     &fontBrush
   );
@@ -417,7 +431,7 @@ void Window::Draw()
     buffer,
     lstrlenW(buffer),
     fpsFont,
-    PointF(20, 67),
+    PointF(20, 87),
     NULL,
     &fontBrush
   );
@@ -458,6 +472,8 @@ LRESULT CALLBACK Window::WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     keycode = LOWORD(wParam);
     if(keycode == 'b')
       ballCollisionsOn = !ballCollisionsOn;
+    else if(keycode == 'c')
+      AddBall();
     return 0;
   default:
     return DefWindowProc(hwnd, msg, wParam, lParam);

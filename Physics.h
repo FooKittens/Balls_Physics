@@ -80,12 +80,13 @@ void Integrate(Ball &ball, double dt)
   // Resulting acceleration
   ball.Acceleration = ball.forceAccumulator * (1.0 /  ball.Mass);
   ball.forceAccumulator = Vector2D(0,0);
-  // Integrate the balls velocity over time
-  ball.Velocity = ball.Acceleration * dt + ball.Velocity;
 
   // Integrate the position over time based on velocity
   ball.Position = (ball.Acceleration * pow(dt, 2.0)) * (1.0 / 2.0) +
     ball.Velocity * dt + ball.Position;
+
+  // Integrate the balls velocity over time
+  ball.Velocity = ball.Acceleration * dt + ball.Velocity;
 
   ball.AngularVelocity = ball.AngularAcceleration * dt + ball.AngularVelocity;
 

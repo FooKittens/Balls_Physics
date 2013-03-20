@@ -48,6 +48,7 @@ private:
   void UpdateGlobalRestitution();
   void ResetBalls();
   void DoBallCollisions(Ball *pBall);
+  void AddBall();
 
   // ---- "Game" Variables ---- //
   // Timer used for precision timing.
