@@ -32,6 +32,7 @@ public:
   // Transforms a vector into screen space.
   Gdiplus::Point TransformToWindow(const Vector2D &vec) const;
 
+  LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 private:
   // Needs to be static due to memberfunction pointers being dumb.
   static LRESULT CALLBACK StaticWinProc(HWND, UINT, WPARAM, LPARAM);
@@ -44,6 +45,10 @@ private:
 
   void GetFpsString(WCHAR *buffer, int size);
 
+  void UpdateGlobalRestitution();
+  void ResetBalls();
+  
+
   // ---- "Game" Variables ---- //
   // Timer used for precision timing.
   GameTimer timer;
@@ -54,6 +59,7 @@ private:
   HINSTANCE appInstance;
   HWND hWindow;
   UINT width, height;
+  double globalRestitution;
   
   // ---- Graphics and GDI ---- //
   Graphics *bufferGraphics;

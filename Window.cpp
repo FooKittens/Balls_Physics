@@ -16,6 +16,7 @@ Window::Window(HINSTANCE instance, UINT width, UINT height)
   this->bufferGraphics = nullptr;
   this->windowGraphics = nullptr;
   this->backBuffer = nullptr;
+  this->globalRestitution = 1.0f;
 }
 
 Window::~Window()
@@ -69,7 +70,7 @@ bool Window::Initialize()
     NULL, 
     NULL,
     appInstance,
-    0
+    this
   );
 
   if(!hWindow)
@@ -92,14 +93,6 @@ bool Window::Initialize()
     Matrix3x3::Translation(0, -((int)height)) *
     Matrix3x3::Scale(1, -1); 
 
-  // Test ball
-  Ball *b = new Ball(this);
-  b->Initialize(0.5f, 0.25f, Vector2D(5.0f, 3.9f));
-  balls.push_back(b);
-
-  Ball *bb = new Ball(this);
-  bb->Initialize(10.5f, 0.125f, Vector2D(4.5f, 4.7f));
-  balls.push_back(bb);
 
   // Test Line
   lines.push_back(new Line(this, Vector2D(2.0f, 5.0f), Vector2D(6.0f, 5.0f)));
@@ -109,11 +102,8 @@ bool Window::Initialize()
 
   lines.push_back(new Line(this, Vector2D(2.7f, 2.3f), Vector2D(5.2f, 3.8f)));
   
-  for(Line *line : lines)
-  {
-    line->SetRestitution(0.85f);
-  }
-
+  
+  ResetBalls();
 
   fpsStrBuffer = new WCHAR[20];
   memset(fpsStrBuffer, 0, sizeof(WCHAR) * 20);
@@ -122,6 +112,25 @@ bool Window::Initialize()
   return true;
 }
 
+void Window::ResetBalls()
+{
+  for(Ball *pBall : balls)
+  {
+    delete pBall;
+  }
+  balls.clear();
+  balls.shrink_to_fit();
+
+  // Test ball
+  Ball *b = new Ball(this);
+  b->Initialize(0.5f, 0.25f, Vector2D(5.0f, 3.9f));
+  balls.push_back(b);
+
+  Ball *bb = new Ball(this);
+  bb->Initialize(10.5f, 0.125f, Vector2D(4.5f, 4.7f));
+  balls.push_back(bb);
+
+}
 
 
 bool Window::Run()
@@ -259,6 +268,14 @@ void Window::UpdateSimulation(double deltaTime)
   }
 }
 
+void Window::UpdateGlobalRestitution()
+{
+  for(Line *line : lines)
+  {
+    line->SetRestitution(globalRestitution);
+  }
+}
+
 Gdiplus::Point Window::TransformToWindow(const Vector2D &vec) const
 {
   Vector2D transformed = Vector2D::Transform(vec, screenTransformMat);
@@ -292,6 +309,8 @@ void Window::Draw()
     ball->Draw(bufferGraphics);
   }
 
+
+  SolidBrush fontBrush(Color(255, 255, 255));
   GetFpsString(fpsStrBuffer, 20);
   bufferGraphics->DrawString(
     fpsStrBuffer,
@@ -299,21 +318,71 @@ void Window::Draw()
     fpsFont,
     PointF(20, 20),
     NULL,
-    &SolidBrush(Color(255, 255, 255))
-  ); 
+    &fontBrush
+  );
+
+  wchar_t buffer[20];
+  swprintf(buffer, L"Restitution: %1.2f\0", globalRestitution);
+  bufferGraphics->DrawString(
+    buffer,
+    lstrlenW(buffer),
+    fpsFont,
+    PointF(20, 35),
+    NULL,
+    &fontBrush
+  );
 
   windowGraphics->DrawImage(backBuffer, 0, 0, 0, 0, width, height, Unit::UnitPixel);
 }
 
 
-LRESULT CALLBACK Window::StaticWinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Window::WinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  int keycode;
+
   switch(msg)
   {
   case WM_DESTROY:
     PostQuitMessage(0);
     return 0;
+  case WM_KEYDOWN:
+    keycode = LOWORD(wParam);
+    switch(keycode)
+    {
+    case VK_UP:
+      globalRestitution += 0.05;
+      UpdateGlobalRestitution();
+      break;
+    case VK_DOWN:
+      globalRestitution -= 0.05;
+      UpdateGlobalRestitution();
+      break;
+    case VK_SPACE:
+      ResetBalls();
+      break;
+    }
+    return 0;
   default:
     return DefWindowProc(hwnd, msg, wParam, lParam);
   }
+}
+
+LRESULT CALLBACK Window::StaticWinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  if(msg == WM_CREATE)
+  {
+    Window *pWindow = (Window *)((LPCREATESTRUCT)lParam)->lpCreateParams;
+    if(pWindow)
+    {
+      SetWindowLong(hwnd, GWL_USERDATA, (long)pWindow);
+    }
+  }
+
+  Window *pWindow = (Window *)GetWindowLong(hwnd, GWL_USERDATA);
+  if(pWindow)
+  {
+    return pWindow->WinProc(hwnd, msg, wParam, lParam);
+  }
+  
+  return DefWindowProc(hwnd, msg, wParam, lParam);
 }

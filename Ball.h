@@ -68,10 +68,6 @@ Ball::Ball(Window *window)
 Ball::~Ball() 
 { 
   numBalls--;
-  if(numBalls == 0)
-  {
-    delete ballImg;
-  }
 }
 
 void Ball::Initialize(double mass, double radius,
